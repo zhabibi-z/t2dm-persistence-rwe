@@ -1,0 +1,30 @@
+version: "3.9"
+
+# Optional: spin up Neo4j for the knowledge graph module.
+# Usage: docker compose up -d neo4j
+# The graph module can also run without Neo4j using NetworkX only.
+
+services:
+  neo4j:
+    image: neo4j:5.15-community
+    container_name: t2dm_neo4j
+    ports:
+      - "7474:7474"   # HTTP browser
+      - "7687:7687"   # Bolt
+    environment:
+      NEO4J_AUTH: ${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-t2dm_password}
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_dbms_security_procedures_unrestricted: "apoc.*"
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - ./graph/cypher_export:/var/lib/neo4j/import
+    healthcheck:
+      test: ["CMD", "neo4j", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  neo4j_data:
+  neo4j_logs:

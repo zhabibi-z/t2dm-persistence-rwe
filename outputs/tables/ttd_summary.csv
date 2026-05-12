@@ -1,0 +1,4 @@
+drug_class,n,n_discontinued,pct_discontinued,median_ttd_days
+metformin,2973,2752,92.6,407.0
+glp1,1056,1008,95.5,256.0
+sglt2,971,910,93.7,315.0

@@ -1,0 +1,20 @@
+MERGE (n:DrugClass {id: 'metformin', name: 'Metformin'});
+MERGE (n:DrugClass {id: 'glp1', name: 'GLP-1 RA'});
+MERGE (n:DrugClass {id: 'sglt2', name: 'SGLT-2i'});
+MERGE (n:Comorbidity {id: 'hypertension', name: 'Hypertension'});
+MERGE (n:Comorbidity {id: 'obesity', name: 'Obesity'});
+MERGE (n:Comorbidity {id: 'ckd', name: 'Ckd'});
+MERGE (n:Comorbidity {id: 'heart_failure', name: 'Heart Failure'});
+MERGE (n:Comorbidity {id: 'hyperlipidemia', name: 'Hyperlipidemia'});
+MERGE (n:Comorbidity {id: 'nash', name: 'Nash'});
+MERGE (n:Comorbidity {id: 'neuropathy', name: 'Neuropathy'});
+MERGE (n:Comorbidity {id: 'retinopathy', name: 'Retinopathy'});
+MERGE (n:Comorbidity {id: 'depression', name: 'Depression'});
+MERGE (n:Comorbidity {id: 'atrial_fibrillation', name: 'Atrial Fibrillation'});
+MERGE (n:Comorbidity {id: 'sleep_apnea', name: 'Sleep Apnea'});
+MERGE (n:Comorbidity {id: 'nafld', name: 'Nafld'});
+MERGE (n:Comorbidity {id: 'pvd', name: 'Pvd'});
+MERGE (n:Comorbidity {id: 'stroke', name: 'Stroke'});
+MERGE (n:Comorbidity {id: 'mi', name: 'Mi'});
+MERGE (n:Outcome {id: 'discontinuation', name: 'Treatment
+Discontinuation'});

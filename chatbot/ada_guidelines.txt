@@ -1,0 +1,76 @@
+ADA Standards of Medical Care in Diabetes — 2024 (Selected Excerpts for RAG)
+
+SOURCE: American Diabetes Association. Standards of Medical Care in Diabetes—2024. Diabetes Care. 2024;47(Suppl 1):S1-S321.
+
+=== SECTION 9: PHARMACOLOGIC APPROACHES TO GLYCEMIC TREATMENT ===
+
+9.1 Metformin remains the preferred initial pharmacological agent for T2DM unless contraindicated or not tolerated. (Evidence level: A)
+
+9.2 For patients with T2DM and established cardiovascular disease (CVD), or high CV risk, a GLP-1 receptor agonist or SGLT-2 inhibitor with demonstrated CV benefit is recommended as part of the glucose-lowering regimen, independent of baseline HbA1c or individualized HbA1c target. (Evidence level: A)
+
+9.3 For patients with T2DM and chronic kidney disease (CKD), to reduce CKD progression and CV events, an SGLT-2 inhibitor with demonstrated kidney protective benefit is recommended if eGFR ≥ 20 mL/min/1.73 m² and urinary albumin excretion ≥ 200 mg/g creatinine. (Evidence level: A)
+
+9.4 For patients with T2DM and heart failure with reduced ejection fraction (HFrEF), SGLT-2 inhibitor therapy is recommended to reduce CV death and hospitalisation for heart failure. (Evidence level: A)
+
+9.5 GLP-1 receptor agonists with demonstrated weight-loss benefit (e.g., semaglutide, liraglutide, dulaglutide) are preferred for patients with T2DM and overweight or obesity who require weight management. (Evidence level: A)
+
+9.6 Medication adherence and persistence are critical to achieving and maintaining glycaemic targets. Patient-centred approaches including medication review, cost assessment, and addressing treatment burden may improve persistence. (Evidence level: C)
+
+=== SECTION 4: COMPREHENSIVE MEDICAL EVALUATION AND COMORBIDITIES ===
+
+4.1 T2DM is associated with multiple comorbidities that increase treatment complexity and may affect medication persistence. Common comorbidities include hypertension (65–80%), obesity (80%), CKD (25–40%), hyperlipidaemia (50%), cardiovascular disease (30–40%), non-alcoholic fatty liver disease (55–70%), and depression (15–25%). (Evidence level: B)
+
+4.2 Comorbidity burden should be assessed at diagnosis and annually using validated tools. The presence of comorbidities may influence drug selection, dosing, and monitoring frequency. (Evidence level: C)
+
+4.3 For patients with T2DM and hypertension, the blood pressure target is < 130/80 mmHg in those with high CV risk. ACE inhibitors or ARBs are preferred in patients with diabetic nephropathy. (Evidence level: A)
+
+4.4 For patients with T2DM and obesity, pharmacotherapy including GLP-1 RA or SGLT-2i may be combined with lifestyle intervention. Anti-obesity medications are recommended for BMI ≥ 30 or BMI ≥ 27 with weight-related comorbidity. (Evidence level: A)
+
+4.5 Depression is 2–3× more common in T2DM and is independently associated with poorer medication adherence and glycaemic control. Routine screening with validated tools (PHQ-9) is recommended. (Evidence level: B)
+
+=== SECTION 11: CHRONIC KIDNEY DISEASE AND RISK MANAGEMENT ===
+
+11.1 Annual screening for CKD with urine albumin-to-creatinine ratio (UACR) and eGFR is recommended in all T2DM patients. (Evidence level: A)
+
+11.2 Metformin may be continued in patients with eGFR ≥ 30 mL/min/1.73 m² with dose adjustment. It is contraindicated below eGFR 30. (Evidence level: A)
+
+11.3 SGLT-2 inhibitors reduce CKD progression (CREDENCE, DAPA-CKD trials). Empagliflozin and canagliflozin have kidney outcome trial data. (Evidence level: A)
+
+=== DRUG CLASS PROFILES ===
+
+METFORMIN:
+- Mechanism: AMPK activation, reduced hepatic glucose production
+- CV benefit: Neutral (UKPDS, reduced MI in obese patients)
+- Renal considerations: Contraindicated if eGFR < 30; dose adjust 30–45
+- Weight effect: Neutral to modest weight loss
+- Major trials: UKPDS 34
+
+GLP-1 RECEPTOR AGONISTS (semaglutide, dulaglutide, liraglutide):
+- Mechanism: GLP-1 receptor activation, glucose-dependent insulin secretion
+- CV benefit: Reduced MACE (LEADER, SUSTAIN-6, REWIND)
+- Renal considerations: Can be used in CKD; dose adjust semaglutide oral in severe
+- Weight effect: Significant weight reduction (2–10 kg)
+- Major trials: LEADER (liraglutide), SUSTAIN-6 (semaglutide), REWIND (dulaglutide)
+
+SGLT-2 INHIBITORS (empagliflozin, dapagliflozin, canagliflozin):
+- Mechanism: Renal glucose reabsorption inhibition (SGLT2 transporter)
+- CV benefit: Reduced CV death, HF hospitalisation (EMPA-REG OUTCOME, DECLARE-TIMI 58)
+- Renal benefit: CKD progression reduction (CREDENCE, DAPA-CKD)
+- Weight effect: Moderate weight loss (2–3 kg)
+- Major trials: EMPA-REG OUTCOME (empagliflozin), CREDENCE (canagliflozin), DAPA-CKD (dapagliflozin)
+
+=== PERSISTENCE AND ADHERENCE EVIDENCE ===
+
+Treatment persistence in T2DM is defined as the duration of uninterrupted treatment from initiation to discontinuation. Key definitions:
+- Grace period: permissible gap between prescription refills (typically 30–90 days)
+- Adherence (MPR/PDC): proportion of days covered by dispensed medication
+- Discontinuation: gap exceeding the defined grace period
+
+Real-world persistence rates (approximate, literature-derived):
+- Metformin 12-month persistence: 60–75%
+- GLP-1 RA 12-month persistence: 45–65% (higher GI side effects at initiation)
+- SGLT-2i 12-month persistence: 55–70%
+
+Comorbidities associated with lower persistence: depression, polypharmacy (≥5 medications), CKD (side effect concerns), obesity (injector burden for GLP-1 RA)
+
+Comorbidities associated with higher persistence: established CVD (guideline-driven use), CKD with proteinuria (SGLT-2i guideline priority)

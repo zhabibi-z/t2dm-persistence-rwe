@@ -1,0 +1,4 @@
+group1,group2,W,p_value,p_adj_bh
+metformin,sglt2,1666565.5,0,0
+metformin,glp1,2008366.5,0,0
+sglt2,glp1,577983,0,0

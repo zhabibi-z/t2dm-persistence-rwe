@@ -1,0 +1,45 @@
+# Environment
+.env
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Data (no PHI ever; synthea output can be large)
+data/synthea_output/
+data/omop/*.duckdb
+data/omop/*.db
+outputs/models/*.pkl
+outputs/models/*.json
+outputs/models/*.ubj
+
+# R
+.Rhistory
+.RData
+.Rproj.user/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Logs
+*.log
+logs/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Java / Synthea
+synthea/
+*.jar
