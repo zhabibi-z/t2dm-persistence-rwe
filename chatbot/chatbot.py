@@ -1,5 +1,5 @@
 """
-chatbot.py — LangChain + Claude API chatbot with 3 RAG retrieval channels:
+chatbot.py — LangChain + Groq (Llama 3.3 70B) chatbot with 3 RAG retrieval channels:
   1. SQL: DuckDB OMOP cohort queries (via SQLDatabase tool)
   2. Model loader: XGBoost predictions and SHAP explanations
   3. Document RAG: FAISS over ADA 2024 guidelines + study results
@@ -9,7 +9,6 @@ Designed as a Streamlit-embeddable chatbot; call get_response() from app.py.
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 from pathlib import Path
@@ -18,7 +17,7 @@ from typing import Any
 import duckdb
 import pandas as pd
 import xgboost as xgb
-from anthropic import Anthropic
+from groq import Groq
 from dotenv import load_dotenv
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
@@ -38,6 +37,8 @@ RESULTS_PATHS = [
     "outputs/tables/cohort_summary.csv",
 ]
 
+GROQ_MODEL = "llama-3.3-70b-versatile"
+
 SYSTEM_PROMPT = """You are a pharmacoepidemiology research assistant for the T2DM Persistence RWE study.
 You help interpret study results, explain statistical methods, and answer clinical questions about
 metformin, GLP-1 receptor agonists, and SGLT-2 inhibitors in type 2 diabetes.
@@ -56,8 +57,8 @@ If asked about clinical decisions, defer to ADA 2024 guidelines and advise consu
 
 class T2DMChatbot:
     def __init__(self) -> None:
-        api_key = os.getenv("ANTHROPIC_API_KEY", "")
-        self.client = Anthropic(api_key=api_key) if api_key else None
+        api_key = os.getenv("GROQ_API_KEY", "")
+        self.client = Groq(api_key=api_key) if api_key else None
         self.vectorstore = self._build_vectorstore()
         self.xgb_model   = self._load_xgb_model()
         self.history: list[dict[str, str]] = []
@@ -82,8 +83,8 @@ class T2DMChatbot:
             log.warning("No documents for vectorstore — RAG disabled")
             return None
 
-        # Use FakeEmbeddings (no API key required for FAISS indexing in demo mode)
-        # In production, replace with langchain_anthropic or OpenAI embeddings
+        # FakeEmbeddings for demo (no embedding API key required)
+        # Replace with a real embedding provider for production
         embeddings = FakeEmbeddings(size=384)
         try:
             vs = FAISS.from_texts(docs, embeddings)
@@ -108,7 +109,6 @@ class T2DMChatbot:
             return "OMOP database not found. Run bootstrap.sh first."
         try:
             conn = duckdb.connect(DB_PATH, read_only=True)
-            # Simple heuristic routing — in production, use an LLM SQL agent
             if "cohort" in question.lower() or "how many" in question.lower():
                 result = conn.execute(
                     "SELECT count(*) AS n_persons FROM person"
@@ -154,7 +154,7 @@ class T2DMChatbot:
     def get_response(self, user_message: str) -> str:
         if self.client is None:
             return (
-                "ANTHROPIC_API_KEY not set. Add it to your .env file to enable the chatbot. "
+                "GROQ_API_KEY not set. Add it to your .env file to enable the chatbot. "
                 "Study results are available in the Survival, ML, and Graph tabs."
             )
 
@@ -166,18 +166,21 @@ class T2DMChatbot:
 
         self.history.append({"role": "user", "content": user_message})
 
+        # Build messages for Groq (OpenAI-compatible)
+        messages = [{"role": "system", "content": system}] + self.history
+
         try:
-            response = self.client.messages.create(
-                model="claude-sonnet-4-6",
+            response = self.client.chat.completions.create(
+                model=GROQ_MODEL,
+                messages=messages,
                 max_tokens=1024,
-                system=system,
-                messages=self.history,
+                temperature=0.3,
             )
-            assistant_message = response.content[0].text
+            assistant_message = response.choices[0].message.content
             self.history.append({"role": "assistant", "content": assistant_message})
             return assistant_message
         except Exception as e:
-            log.error("Claude API error: %s", e)
+            log.error("Groq API error: %s", e)
             return f"API error: {e}"
 
     def clear_history(self) -> None:
@@ -193,3 +196,12 @@ def get_chatbot() -> T2DMChatbot:
     if _chatbot_instance is None:
         _chatbot_instance = T2DMChatbot()
     return _chatbot_instance
+
+
+if __name__ == "__main__":
+    import sys
+    bot = T2DMChatbot()
+    query = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else \
+        "What is the median time to discontinuation for metformin in our cohort?"
+    print(f"\nQuery: {query}\n")
+    print(bot.get_response(query))

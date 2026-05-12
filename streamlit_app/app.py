@@ -7,7 +7,7 @@ streamlit_app/app.py — T2DM Persistence RWE interactive dashboard.
   3. Survival     — KM curves, Cox HR tables, forest plot, stratified KM
   4. ML           — XGBoost CV performance, SHAP, UMAP
   5. Graph        — knowledge graph visualisation, Cypher queries
-  6. Chatbot      — LangChain + Claude API Q&A
+  6. Chatbot      — LangChain + Groq (Llama 3.3 70B) Q&A
 
 Run: streamlit run streamlit_app/app.py
 """
@@ -100,7 +100,7 @@ with tab1:
         | Statistical methods | Cox PH, KM, time-varying Cox |
         | ML | XGBoost + SHAP (1-year discontinuation) |
         | Graph | NetworkX → Neo4j Cypher |
-        | Chatbot | LangChain + Claude API + RAG |
+        | Chatbot | LangChain + Groq (Llama 3.3 70B) + RAG |
 
         ### Pipeline Architecture
         ```
@@ -398,7 +398,7 @@ with tab5:
 # TAB 6 — CHATBOT
 # ═══════════════════════════════════════════════════════════════════════════════
 with tab6:
-    st.header("Study Assistant — LangChain + Claude API")
+    st.header("Study Assistant — Llama 3.3 70B via Groq")
     st.markdown(
         "Ask questions about study results, statistical methods, or drug-class clinical profiles. "
         "The assistant has access to study outputs, the ADA 2024 guidelines, and the OMOP database."
@@ -423,7 +423,7 @@ with tab6:
                     bot = get_chatbot()
                     response = bot.get_response(prompt)
                 except Exception as e:
-                    response = f"Chatbot error: {e}\n\nEnsure ANTHROPIC_API_KEY is set in `.env`."
+                    response = f"Chatbot error: {e}\n\nEnsure GROQ_API_KEY is set in `.env`."
             st.markdown(response)
             st.session_state.chat_history.append({"role": "assistant", "content": response})
 

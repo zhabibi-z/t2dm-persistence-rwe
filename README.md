@@ -11,7 +11,7 @@
 
 This real-world evidence (RWE) study applies pharmacoepidemiological methods to characterise comparative treatment persistence across three major antidiabetic drug classes: metformin monotherapy, GLP-1 receptor agonists (semaglutide, dulaglutide, liraglutide), and SGLT-2 inhibitors (empagliflozin, dapagliflozin, canagliflozin). The primary endpoint is time to treatment discontinuation (TTD) defined by a 90-day grace period. Comorbidity burden — measured across 15 SNOMED-mapped conditions — is investigated as a predictor and time-varying modifier of persistence.
 
-The study follows the **STaRT-RWE** structured template, the **OHDSI LegendT2dm** active-comparator new-user cohort design, and is built on the **OMOP CDM v5.4** running on **DuckDB**. A machine-learning (XGBoost + SHAP) module provides 1-year discontinuation prediction. A knowledge graph (NetworkX / Neo4j) encodes drug–disease–comorbidity relationships, and a LangChain + Claude API chatbot enables natural-language querying of study results against the ADA 2024 Standards of Care.
+The study follows the **STaRT-RWE** structured template, the **OHDSI LegendT2dm** active-comparator new-user cohort design, and is built on the **OMOP CDM v5.4** running on **DuckDB**. A machine-learning (XGBoost + SHAP) module provides 1-year discontinuation prediction. A knowledge graph (NetworkX / Neo4j) encodes drug–disease–comorbidity relationships, and a LangChain + Groq chatbot (Llama 3.3 70B) enables natural-language querying of study results against the ADA 2024 Standards of Care.
 
 ---
 
@@ -72,7 +72,7 @@ cohort_matching.R           1:5 PS matching (MatchIt), balance diagnostics (coba
     │
     ├── train.py            XGBoost + UMAP + SHAP (5-fold CV)
     ├── build_graph.py      NetworkX → Cypher export
-    └── chatbot.py          LangChain + Claude API + RAG (SQL + SHAP + Cypher)
+    └── chatbot.py          LangChain + Groq Llama 3.3 70B + RAG (SQL + SHAP + Cypher)
     │
     ▼
 streamlit_app/app.py        6-tab interactive dashboard
@@ -88,7 +88,7 @@ cd t2dm-persistence-rwe
 
 # Copy and fill environment variables
 cp .env.template .env
-# edit .env: add ANTHROPIC_API_KEY
+# edit .env: add GROQ_API_KEY (free at console.groq.com)
 
 # Run full pipeline (installs deps, runs all steps)
 bash scripts/bootstrap.sh
@@ -106,8 +106,11 @@ bash scripts/bootstrap.sh
 | Matching | MatchIt, cobalt (R) |
 | ML | XGBoost, SHAP, UMAP (Python) |
 | Graph | NetworkX, Neo4j 5.15 (optional) |
-| Chatbot | LangChain, Claude API (Anthropic) |
+| Chatbot | LangChain, Groq (Llama 3.3 70B — free inference API) |
 | Dashboard | Streamlit |
+
+> **Chatbot powered by Llama 3.3 70B served via Groq's free inference API.**
+> Get a free API key at [console.groq.com](https://console.groq.com) and add `GROQ_API_KEY=...` to your `.env`.
 | Orchestration | Bash, Perl |
 
 ---
