@@ -43,3 +43,7 @@ logs/
 # Java / Synthea
 synthea/
 *.jar
+
+# Allow specific trained models for cloud deployment
+!outputs/models/xgb_discontinuation.pkl
+!outputs/models/xgb_model.ubj
