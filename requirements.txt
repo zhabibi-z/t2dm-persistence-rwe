@@ -32,6 +32,7 @@ faiss-cpu>=1.8.0
 
 # Dashboard
 streamlit==1.35.0
+streamlit-agraph>=0.0.45
 
 # Jupyter
 jupyter==1.1.1

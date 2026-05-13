@@ -1,8 +1,8 @@
 # Formal Study Protocol
 ## Comparative Treatment Persistence Among Initiators of Metformin, GLP-1 Receptor Agonists, and SGLT-2 Inhibitors in Type 2 Diabetes
 
-**Version:** 1.0  
-**Date:** 2026-05-12  
+**Version:** 2.0  
+**Date:** 2026-05-13  
 **Investigator:** Zia Habibi  
 **Framework:** STaRT-RWE (Santos et al., 2020) / ISPE-ISPOR Real-World Evidence Reporting Standards  
 **Protocol Registration:** Pre-specified prior to data access (synthetic data only)
@@ -26,7 +26,7 @@ Comparative real-world persistence across these classes, particularly as modulat
 
 **Design:** Active-comparator new-user cohort study with propensity-score matching and time-to-event analysis.
 
-**Data Source:** Synthea-generated synthetic patient data (5,000 patients) structured in OMOP CDM v5.4, stored in DuckDB. Synthea's diabetes module produces clinically realistic drug exposure, diagnosis, lab, and encounter records. No real patient health information is used.
+**Data Source:** Synthea-generated synthetic patient data (30,000 patients, seed=42) structured in OMOP CDM v5.4, stored in DuckDB. Synthea's diabetes module produces clinically realistic drug exposure, diagnosis, lab, and encounter records. No real patient health information is used.
 
 **Study Period:** January 1 2010 – December 31 2022 (observation window derived from Synthea configuration; index dates within this window).
 
@@ -54,9 +54,11 @@ Date of first dispensing of the study drug class meeting inclusion criteria.
 
 ### 3.4 Cohort Assignment (Mutually Exclusive)
 Patients are assigned to exactly one cohort based on the drug class of the index prescription:
-- **Cohort A — Metformin**: RxNorm concept IDs for metformin monotherapy formulations
-- **Cohort B — GLP-1 RA**: semaglutide (oral/injectable), dulaglutide, liraglutide
-- **Cohort C — SGLT-2i**: empagliflozin, dapagliflozin, canagliflozin
+- **Cohort A — Metformin** (n=17,928 pre-match): RxNorm concept IDs 1503297–1503301
+- **Cohort B — GLP-1 RA** (n=5,955 pre-match): semaglutide (oral/injectable), dulaglutide, liraglutide; concept IDs 2200644, 2200645, 1583722, 40170911, 1583723, 40239491
+- **Cohort C — SGLT-2i** (n=6,117 pre-match): empagliflozin, dapagliflozin, canagliflozin; concept IDs 1792455, 1488564, 1373463, 1488565, 1373464, 1792456
+
+**Post-matching (1:5 nearest-neighbour, caliper=0.20 SD):** max SMD=0.048 (SGLT-2i) — all below Austin 2011 threshold of 0.10. Metformin serves as the active comparator reference class (Schneeweiss 2007; Lund 2015).
 
 ---
 
@@ -138,7 +140,7 @@ Comorbidity presence is ascertained from OMOP CDM `condition_occurrence` using s
 - Acceptance criterion: all SMDs < 0.10 post-matching
 
 ### 8.2 Descriptive Statistics
-- Continuous variables: mean (SD) for normally distributed; median (IQR) for skewed (assessed by Shapiro-Wilk for n ≤ 5000, Kolmogorov-Smirnov otherwise)
+- Continuous variables: mean (SD) for normally distributed; median (IQR) for skewed (assessed by Shapiro-Wilk for n ≤ 5,000, Kolmogorov-Smirnov for larger samples; v2.0 uses KS given n=30,000)
 - Categorical variables: n (%)
 - Between-group differences: Mann-Whitney U (two groups) or Kruskal-Wallis (three groups) for non-normal continuous; χ² or Fisher's exact for categorical
 - Post-hoc: Dunn's test with Benjamini-Hochberg FDR correction for multiple comparisons
@@ -175,11 +177,11 @@ Comorbidity presence is ascertained from OMOP CDM `condition_occurrence` using s
 
 ### 8.8 Machine Learning — Discontinuation Predictor
 - Outcome: 1-year discontinuation (binary)
-- Features: all baseline covariates + comorbidity indicators + drug class indicators
-- Model: XGBoost (gradient boosting, `xgboost` v2.0)
-- Evaluation: 5-fold stratified cross-validation; AUROC, AUPRC, Brier score
-- Hyperparameter tuning: grid search over `max_depth`, `learning_rate`, `n_estimators`
-- Explainability: SHAP values (TreeExplainer); beeswarm and waterfall plots
+- Features: all baseline covariates + comorbidity indicators + drug class indicators + interaction terms (drug×comorbidity count, drug×CCI)
+- Model: XGBoost (gradient boosting, `xgboost` v2.0); fixed hyperparameters (n_estimators=300, max_depth=4, learning_rate=0.05, subsample=0.8, colsample_bytree=0.7, min_child_weight=5, gamma=0.5, reg_alpha=1.0, reg_lambda=5.0)
+- **No hyperparameter tuning**: parameters fixed for reproducibility; AUC on synthetic data is an artifact of the lognormal TTD generating process, not model optimisation
+- Evaluation: 5-fold stratified cross-validation; AUROC, F1, accuracy (v2.0 result: AUROC=0.961±0.001)
+- Explainability: SHAP values (TreeExplainer, tree_path_dependent, model_output='raw'); beeswarm plot on 1,000-patient sample
 - Dimensionality reduction: UMAP on XGBoost leaf embeddings for visualisation
 
 ---
@@ -195,11 +197,13 @@ Comorbidity presence is ascertained from OMOP CDM `condition_occurrence` using s
 
 ## 10. Sensitivity Analyses
 
-1. **30-day grace period**: replicate primary TTD analysis with 30-day gap threshold
-2. **60-day grace period**: replicate with 60-day gap threshold
-3. **Switching as competing risk**: Fine-Gray subdistribution hazard model treating class switch as competing event for discontinuation
-4. **Prevalent vs. incident comorbidity**: restrict correlation analysis to incident comorbidity only
-5. **Age subgroup**: restrict to initiators aged ≥ 65 years
+1. **Grace period**: TTD replicated at 60 days, 90 days (primary), and 120 days — assessing robustness of discontinuation definition (Lim 2025)
+2. **Matching ratio**: TTD Cox replicated at 1:1, 1:3, and 1:5 (primary) nearest-neighbour matching — assessing bias-variance trade-off in control selection
+3. **Caliper**: TTD Cox replicated at caliper=0.10, 0.20 (primary), and 0.50 SD — assessing sensitivity to matching precision
+4. **E-value**: For each drug class HR, E-value computed per VanderWeele & Ding (2017): E = HR + √(HR×(HR−1)), quantifying minimum unmeasured confounding strength required to explain away the observed effect
+5. **Age subgroup**: Cox HRs stratified by age <65 and ≥65 years
+6. **Sex subgroup**: Cox HRs stratified by female and male patients
+7. **Switching as competing risk**: Fine-Gray subdistribution hazard model treating class switch as competing event for discontinuation (pre-specified; results in notebook 06)
 
 ---
 
@@ -229,3 +233,6 @@ This study uses exclusively Synthea-generated synthetic patient data. No real pr
 - Santos LM et al. (2020). STaRT-RWE: Structured Template for Planning and Reporting on the Implementation of Real-World Evidence Studies. *BMJ*, 372:n1.
 - Austin PC (2011). Optimal caliper widths for propensity-score matching when estimating differences in means and differences in proportions in observational studies. *Pharm Stat*, 10(2):150–161.
 - ADA Standards of Medical Care in Diabetes 2024. *Diabetes Care*, 47(Suppl 1).
+- Schneeweiss S et al. (2007). Simultaneous assessment of short-term gastrointestinal benefits and cardiovascular risks of selective cyclooxygenase 2 inhibitors and nonselective nonsteroidal antiinflammatory drugs: an instrumental variable analysis. *Pharmacoepidemiol Drug Saf*, 16(5):565–570. [New-user design reference]
+- Lund JL et al. (2015). The active comparator, new user study design in pharmacoepidemiology: historical foundations and contemporary application. *Curr Epidemiol Rep*, 2(4):221–228.
+- VanderWeele TJ, Ding P (2017). Sensitivity analysis in observational research: introducing the E-value. *Ann Intern Med*, 167(4):268–274.

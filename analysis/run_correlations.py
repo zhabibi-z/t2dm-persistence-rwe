@@ -122,7 +122,7 @@ def run_correlations(matched_cohort: str, ttd_file: str, output_dir: str) -> Non
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--matched-cohort", default="outputs/tables/cohort_matched.csv")
-    parser.add_argument("--ttd-file",       default="outputs/tables/ttd_summary.csv")
+    parser.add_argument("--ttd-file",       default="outputs/tables/ttd_events.csv")
     parser.add_argument("--output-dir",     default="outputs")
     args = parser.parse_args()
     run_correlations(args.matched_cohort, args.ttd_file, args.output_dir)

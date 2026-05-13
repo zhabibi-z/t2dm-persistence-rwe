@@ -55,7 +55,7 @@ ok "Output directories ready"
 
 # ── Step 1: Synthea data generation ──────────────────────────────
 step 1 "Generating Synthea synthetic patients"
-SYNTHEA_COUNT="${SYNTHEA_PATIENT_COUNT:-5000}"
+SYNTHEA_COUNT="${SYNTHEA_PATIENT_COUNT:-30000}"
 SYNTHEA_SEED="${SYNTHEA_SEED:-42}"
 
 if [ -d "synthea" ] && [ -f "synthea/run_synthea" ]; then
@@ -80,7 +80,9 @@ fi
 step 2 "ETL: Loading Synthea output into OMOP CDM DuckDB"
 python etl/synthea_to_omop.py \
     --synthea-dir data/synthea_output \
-    --db-path "${OMOP_DB_PATH:-data/omop/omop.duckdb}"
+    --db-path "${OMOP_DB_PATH:-data/omop/omop.duckdb}" \
+    --patients "$SYNTHEA_COUNT" \
+    --seed "$SYNTHEA_SEED"
 ok "OMOP CDM DuckDB loaded"
 
 # ── Step 3: Cohort construction ───────────────────────────────────
@@ -134,7 +136,7 @@ ok "TTC Cox complete"
 step 9 "Pearson correlations (comorbidity × TTD)"
 python analysis/run_correlations.py \
     --matched-cohort outputs/tables/cohort_matched.csv \
-    --ttd-file outputs/tables/ttd_summary.csv \
+    --ttd-file outputs/tables/ttd_events.csv \
     --output-dir outputs
 ok "Correlation analysis complete"
 

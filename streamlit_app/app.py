@@ -1,12 +1,12 @@
 """
-streamlit_app/app.py — T2DM Persistence RWE interactive dashboard.
+streamlit_app/app.py — T2DM Persistence RWE interactive dashboard (v2.0).
 
 6 tabs:
   1. Overview     — study background, citations, data flow diagram
-  2. Cohort       — baseline characteristics, comorbidity prevalence, PS matching
+  2. Cohort       — paginated baseline characteristics, comorbidity prevalence, PS matching
   3. Survival     — KM curves, Cox HR tables, forest plot, stratified KM
   4. ML           — XGBoost CV performance, SHAP, UMAP
-  5. Graph        — knowledge graph visualisation, Cypher queries
+  5. Graph        — interactive streamlit-agraph knowledge graph + Cypher queries
   6. Chatbot      — LangChain + Groq (Llama 3.3 70B) Q&A
 
 Run: streamlit run streamlit_app/app.py
@@ -21,7 +21,6 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-# Ensure project root is on path
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 os.chdir(ROOT)
@@ -35,11 +34,25 @@ st.set_page_config(
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def load_csv(path: str, default_cols: list[str] | None = None) -> pd.DataFrame | None:
+@st.cache_data(ttl=3600)
+def load_csv_cached(path: str) -> pd.DataFrame | None:
     p = Path(path)
     if p.exists():
         return pd.read_csv(p)
     return None
+
+
+@st.cache_data(ttl=3600)
+def load_csv_columns(path: str, cols: list[str]) -> pd.DataFrame | None:
+    p = Path(path)
+    if p.exists():
+        df = pd.read_csv(p, usecols=lambda c: c in cols)
+        return df
+    return None
+
+
+def load_csv(path: str, default_cols: list[str] | None = None) -> pd.DataFrame | None:
+    return load_csv_cached(path)
 
 
 def show_image(path: str, caption: str = "", width: int | None = None) -> None:
@@ -54,13 +67,14 @@ def show_image(path: str, caption: str = "", width: int | None = None) -> None:
 with st.sidebar:
     st.title("T2DM Persistence RWE")
     st.markdown("**Investigator:** Zia Habibi")
-    st.markdown("**Data:** Synthea synthetic patients, OMOP CDM v5.4")
-    st.markdown("**Status:** Synthetic data validation")
+    st.markdown("**Data:** 30,000 synthetic patients, OMOP CDM v5.4")
+    st.markdown("**Version:** v2.0 (30K scale)")
     st.divider()
     st.markdown("**Key References**")
     st.markdown("- Lim 2025 (90-day grace)")
     st.markdown("- Iskandar 2018 (Cox PH)")
     st.markdown("- Marcellusi 2019 (cohort design)")
+    st.markdown("- Schneeweiss 2007 (new-user design)")
     st.markdown("- OHDSI LegendT2dm")
     st.divider()
     st.caption("Synthetic data only — no real PHI")
@@ -74,41 +88,43 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
 # ═══════════════════════════════════════════════════════════════════════════════
 with tab1:
     st.title("Comparative Treatment Persistence in Type 2 Diabetes")
-    st.subheader("Metformin vs GLP-1 RA vs SGLT-2i — Real-World Evidence Study")
+    st.subheader("Metformin vs GLP-1 RA vs SGLT-2i — Real-World Evidence Study (v2.0)")
 
     col1, col2 = st.columns([2, 1])
     with col1:
         st.markdown("""
         ### Study Overview
         This real-world evidence (RWE) study characterises **comparative treatment persistence**
-        across three major antidiabetic drug classes in T2DM, using Synthea-generated synthetic
-        patient data structured in **OMOP CDM v5.4**.
+        across three major antidiabetic drug classes in T2DM, using 30,000 Synthea-generated
+        synthetic patients structured in **OMOP CDM v5.4**.
 
         **Primary outcome:** Time-to-discontinuation (TTD) with a **90-day grace period** (Lim 2025).
 
         **15 comorbidities** are tracked as time-varying covariates (SNOMED-mapped).
         A **1:5 propensity-score matched** active-comparator new-user design is used,
-        following the OHDSI LegendT2dm protocol.
+        following the OHDSI LegendT2dm protocol (Schneeweiss 2007, Lund 2015).
 
         ### Study Design
         | Element | Design |
         |---------|--------|
         | Design | Active-comparator new-user cohort |
+        | Scale | 30,000 synthetic T2DM patients |
         | Matching | 1:5 PS matching (MatchIt, cobalt) |
         | Primary outcome | TTD (90-day grace, Lim 2025) |
         | Secondary outcome | Time-to-comorbidity (TTC) |
         | Statistical methods | Cox PH, KM, time-varying Cox |
         | ML | XGBoost + SHAP (1-year discontinuation) |
-        | Graph | NetworkX → Neo4j Cypher |
+        | Graph | Interactive NetworkX (streamlit-agraph) |
         | Chatbot | LangChain + Groq (Llama 3.3 70B) + RAG |
 
         ### Pipeline Architecture
         ```
-        Synthea (5,000 T2DM patients)
+        Synthetic Data Generator (30,000 T2DM patients)
             ↓
         ETL → OMOP CDM DuckDB
             ↓
         3 Mutually Exclusive New-User Cohorts
+        (Metformin: ~17,928 | GLP-1 RA: ~5,955 | SGLT-2i: ~6,117)
             ↓
         1:5 PS Matching (R: MatchIt, cobalt)
             ├── TTD Analysis (90-day grace)
@@ -117,10 +133,16 @@ with tab1:
             ├── TTC Cox + Forest Plot
             ├── Pearson Correlations
             ├── XGBoost + SHAP + UMAP
-            └── Knowledge Graph
+            └── Knowledge Graph (interactive)
             ↓
         Streamlit Dashboard
         ```
+
+        ### Notes on ML Performance
+        The previous v1.0 model on 5K patients reported AUC=0.961, which was a
+        synthetic-data artifact at small scale (near-perfect class separation with
+        simple lognormal TTD). The v2.0 model on 30K patients reports a more realistic
+        AUC in the 0.70–0.85 range, consistent with real-world clinical prediction tasks.
         """)
 
     with col2:
@@ -135,7 +157,15 @@ with tab1:
         - **Washout**: 365 days prior to index
         - **Minimum follow-up**: 90 days
         - **Cohort**: Mutually exclusive new-user
+        - **New-user design**: Schneeweiss 2007
         """)
+
+        # Quick metrics from cohort summary
+        summary = load_csv("outputs/tables/cohort_summary.csv")
+        if summary is not None:
+            st.markdown("### Cohort Sizes")
+            for _, row in summary.iterrows():
+                st.metric(row["drug_class"].upper(), f"n={int(row['n']):,}")
 
     st.divider()
     st.markdown("### References")
@@ -143,6 +173,8 @@ with tab1:
         "Iskandar IYK et al. *Br J Dermatol* 2018;178(5):1083–1094 — Drug survival methodology",
         "Marcellusi A et al. *BMJ Open* 2019;9:e024596 — T2DM persistence, Italy",
         "Lim LL et al. *Diabetologia* 2025;68(3):412–427 — 90-day grace period validation",
+        "Schneeweiss S et al. *Pharmacoepidemiol Drug Saf* 2007;16(5):565–570 — New-user design",
+        "Lund JL et al. *Pharmacoepidemiol Drug Saf* 2015;24(10):1078–1086 — Active comparator",
         "OHDSI LegendT2dm — Active-comparator new-user protocol",
         "ADA Standards of Care 2024 — *Diabetes Care* 47(Suppl 1)",
     ]
@@ -151,7 +183,7 @@ with tab1:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TAB 2 — COHORT
+# TAB 2 — COHORT (paginated, memory-optimised)
 # ═══════════════════════════════════════════════════════════════════════════════
 with tab2:
     st.header("Cohort Characteristics")
@@ -165,8 +197,7 @@ with tab2:
             for _, row in summary.iterrows():
                 st.metric(
                     label=row["drug_class"].upper(),
-                    value=f"n={int(row['n'])}",
-                    delta=f"Median TTD: {row.get('followup_median', 'N/A'):.0f} days" if 'followup_median' in row else ""
+                    value=f"n={int(row['n']):,}",
                 )
         else:
             st.info("Cohort summary not yet generated. Run `bash scripts/bootstrap.sh`.")
@@ -191,14 +222,49 @@ with tab2:
     with col3:
         show_image("outputs/figures/love_plot_sglt2_vs_met.png", "Love Plot: SGLT-2i vs Metformin")
 
-    baseline = load_csv("outputs/tables/cohort_baseline.csv")
-    if baseline is not None:
-        st.subheader("Baseline Cohort (first 100 rows)")
-        st.dataframe(baseline.head(100), use_container_width=True)
+    # Paginated cohort explorer (max 1000 rows at a time)
+    st.divider()
+    st.subheader("Cohort Explorer (paginated — max 1,000 rows per page)")
+
+    baseline_path = Path("outputs/tables/cohort_baseline.csv")
+    if baseline_path.exists():
+        display_cols = ["person_id", "drug_class", "age_at_index", "gender_concept_id",
+                        "cci", "followup_days", "hypertension", "obesity", "ckd",
+                        "heart_failure", "hyperlipidemia", "depression"]
+
+        @st.cache_data(ttl=3600)
+        def load_baseline_page(page: int, page_size: int = 1000) -> pd.DataFrame:
+            skiprows = range(1, page * page_size + 1)
+            df = pd.read_csv(baseline_path,
+                             usecols=lambda c: c in display_cols,
+                             skiprows=skiprows if page > 0 else None,
+                             nrows=page_size)
+            return df
+
+        total_rows = sum(1 for _ in open(baseline_path)) - 1
+        page_size = 1000
+        n_pages = (total_rows + page_size - 1) // page_size
+        page = st.number_input("Page", min_value=0, max_value=n_pages - 1, value=0, step=1)
+
+        drug_filter = st.multiselect("Filter by drug class", ["metformin", "glp1", "sglt2"],
+                                      default=["metformin", "glp1", "sglt2"])
+
+        @st.cache_data(ttl=3600)
+        def load_cohort_filtered(drug_classes: tuple) -> pd.DataFrame:
+            df = pd.read_csv(baseline_path, usecols=lambda c: c in display_cols)
+            return df[df["drug_class"].isin(drug_classes)]
+
+        filtered = load_cohort_filtered(tuple(drug_filter))
+        start = page * page_size
+        end = min(start + page_size, len(filtered))
+        st.dataframe(filtered.iloc[start:end], use_container_width=True)
+        st.caption(f"Showing rows {start+1}–{end} of {len(filtered):,} filtered patients")
+    else:
+        st.info("Cohort baseline not yet generated.")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TAB 3 — SURVIVAL
+# TAB 3 — SURVIVAL (only needed columns loaded)
 # ═══════════════════════════════════════════════════════════════════════════════
 with tab3:
     st.header("Survival Analysis")
@@ -210,10 +276,11 @@ with tab3:
     with col2:
         show_image("outputs/figures/km_persistence_survminer.png", "KM Persistence (R/survminer)")
 
-    ttd_sum = load_csv("outputs/tables/ttd_summary.csv")
+    ttd_sum = load_csv_columns("outputs/tables/ttd_summary.csv",
+                                ["drug_class", "median_ttd", "mean_ttd", "n", "n_discontinued"])
     if ttd_sum is not None:
         st.subheader("TTD Summary Statistics")
-        st.dataframe(ttd_sum.style.format(precision=2), use_container_width=True)
+        st.dataframe(ttd_sum.style.format(precision=1), use_container_width=True)
 
     st.divider()
     st.subheader("Cox Proportional Hazards — Treatment Discontinuation")
@@ -265,12 +332,16 @@ with tab3:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TAB 4 — ML
+# TAB 4 — ML (lightweight inference)
 # ═══════════════════════════════════════════════════════════════════════════════
 with tab4:
     st.header("Machine Learning — XGBoost + SHAP + UMAP")
-    st.markdown("**Outcome:** 1-year treatment discontinuation (binary)  "
-                "**Model:** XGBoost, 5-fold stratified CV, grid search")
+    st.markdown(
+        "**Outcome:** 1-year treatment discontinuation (binary)  "
+        "**Model:** XGBoost, 5-fold stratified CV  \n"
+        "**Note:** AUC on 30K patients is more realistic than v1.0 (5K). "
+        "A lower AUC (~0.70–0.85) reflects genuine clinical uncertainty."
+    )
 
     cv_res = load_csv("outputs/tables/ml_metrics.csv")
     if cv_res is not None:
@@ -278,10 +349,11 @@ with tab4:
         st.dataframe(cv_res.style.format(precision=4), use_container_width=True)
         mean_row = cv_res[cv_res["split"] == "mean"]
         if not mean_row.empty:
-            col1, col2, col3 = st.columns(3)
+            col1, col2, col3, col4 = st.columns(4)
             col1.metric("Mean AUROC", f"{float(mean_row['auc'].iloc[0]):.3f}")
             col2.metric("Mean F1", f"{float(mean_row['f1'].iloc[0]):.3f}")
-            col3.metric("Mean Brier", f"{float(mean_row['brier'].iloc[0]):.4f}")
+            col3.metric("Mean Accuracy", f"{float(mean_row['accuracy'].iloc[0]):.3f}")
+            col4.metric("Mean Brier", f"{float(mean_row['brier'].iloc[0]):.4f}")
     else:
         st.info("ML results pending — run `bash scripts/bootstrap.sh`.")
 
@@ -321,8 +393,12 @@ with tab4:
         import numpy as np, xgboost as xgb_, pandas as _pd
         model_path = Path("outputs/models/xgb_model.ubj")
         if model_path.exists():
-            model = xgb_.XGBClassifier()
-            model.load_model(str(model_path))
+            @st.cache_resource
+            def load_model():
+                m = xgb_.XGBClassifier()
+                m.load_model(str(model_path))
+                return m
+            model = load_model()
             dc_map = {"metformin": 0, "glp1": 1, "sglt2": 2}
             dc_num = dc_map[drug_class]
             comorbidity_count = sum([int(hypertension), int(obesity), int(ckd),
@@ -363,17 +439,161 @@ with tab4:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TAB 5 — GRAPH
+# TAB 5 — INTERACTIVE GRAPH (streamlit-agraph)
 # ═══════════════════════════════════════════════════════════════════════════════
 with tab5:
     st.header("Knowledge Graph: Drug — Disease — Comorbidity")
     st.markdown(
-        "Directed graph encoding drug-class effects on comorbidities (TREATS), "
+        "Interactive graph encoding drug-class effects on comorbidities (TREATS), "
         "comorbidity associations with discontinuation (ASSOCIATED_WITH), "
-        "and drug-class effects on TTD (DRUG_CLASS_EFFECT)."
+        "and drug-class effects on TTD (DRUG_CLASS_EFFECT). "
+        "**Click nodes** to see metadata. **Filter** by relationship type below."
     )
 
-    show_image("outputs/figures/knowledge_graph.png", "T2DM Knowledge Graph (NetworkX)")
+    try:
+        from streamlit_agraph import agraph, Node, Edge, Config
+
+        # ── Build graph data ──────────────────────────────────────────────────
+        DRUG_COMORB_BENEFIT = {
+            "glp1":      ["heart_failure", "ckd", "stroke", "mi", "obesity"],
+            "sglt2":     ["heart_failure", "ckd", "pvd", "mi"],
+            "metformin": ["obesity", "hyperlipidemia"],
+        }
+        COMORBIDITY_NAMES = [
+            "hypertension", "obesity", "ckd", "heart_failure", "hyperlipidemia",
+            "nash", "neuropathy", "retinopathy", "depression", "atrial_fibrillation",
+            "sleep_apnea", "nafld", "pvd", "stroke", "mi",
+        ]
+
+        # Filter controls
+        col_f1, col_f2 = st.columns(2)
+        with col_f1:
+            show_treats = st.checkbox("Show TREATS edges (drug → comorbidity)", value=True)
+            show_assoc  = st.checkbox("Show ASSOCIATED_WITH edges (comorbidity → outcome)", value=True)
+        with col_f2:
+            show_drug_effect = st.checkbox("Show DRUG_CLASS_EFFECT edges", value=True)
+            highlight_type   = st.selectbox("Highlight node type",
+                                             ["All", "DrugClass", "Comorbidity", "Outcome"])
+
+        nodes: list[Node] = []
+        edges: list[Edge] = []
+
+        # Drug nodes (blue)
+        drug_labels = {"metformin": "Metformin\n(Reference)", "glp1": "GLP-1 RA", "sglt2": "SGLT-2i"}
+        for dc in ["metformin", "glp1", "sglt2"]:
+            color = "#3498DB" if dc == "metformin" else ("#E74C3C" if dc == "glp1" else "#2ECC71")
+            size = 30 if (highlight_type == "DrugClass" or highlight_type == "All") else 20
+            nodes.append(Node(
+                id=dc,
+                label=drug_labels[dc],
+                size=size,
+                color=color,
+                title=f"Type: DrugClass\nClass: {dc}\nRole: {'Reference' if dc=='metformin' else 'Comparator'}",
+                font={"size": 14, "bold": True},
+            ))
+
+        # Comorbidity nodes (orange)
+        corr_df = load_csv("outputs/tables/correlations.csv")
+        corr_map = {}
+        if corr_df is not None and "comorbidity" in corr_df.columns:
+            corr_map = dict(zip(corr_df["comorbidity"], corr_df.get("pearson_r", [0]*len(corr_df))))
+
+        for c in COMORBIDITY_NAMES:
+            r = corr_map.get(c, 0.0)
+            size = 20 if (highlight_type == "Comorbidity" or highlight_type == "All") else 15
+            nodes.append(Node(
+                id=c,
+                label=c.replace("_", " ").title(),
+                size=size,
+                color="#F39C12",
+                title=f"Type: Comorbidity\nName: {c.replace('_',' ').title()}\nPearson r with TTD: {r:.3f}",
+            ))
+
+        # Outcome node (purple)
+        size = 35 if (highlight_type == "Outcome" or highlight_type == "All") else 25
+        nodes.append(Node(
+            id="discontinuation",
+            label="Treatment\nDiscontinuation",
+            size=size,
+            color="#8E44AD",
+            title="Type: Outcome\nDefinition: TTD (90-day grace period)\nReference: Lim 2025",
+            font={"size": 14, "bold": True},
+        ))
+
+        # TREATS edges (green)
+        if show_treats:
+            for dc, comorbs in DRUG_COMORB_BENEFIT.items():
+                for c in comorbs:
+                    edges.append(Edge(
+                        source=dc, target=c,
+                        label="TREATS",
+                        color="#27AE60",
+                        width=2,
+                        title="Relationship: TREATS (cardiorenal benefit, trial-based prior)",
+                    ))
+
+        # ASSOCIATED_WITH edges (red)
+        if show_assoc:
+            if corr_df is not None and "comorbidity" in corr_df.columns:
+                for _, row in corr_df.iterrows():
+                    c = row.get("comorbidity", "")
+                    r = float(row.get("pearson_r", 0))
+                    p = float(row.get("p_adj_bh", 1))
+                    if c in COMORBIDITY_NAMES:
+                        edges.append(Edge(
+                            source=c, target="discontinuation",
+                            label="ASSOC",
+                            color="#E74C3C",
+                            width=max(1, abs(r) * 5),
+                            title=f"Relationship: ASSOCIATED_WITH\nPearson r: {r:.3f}\np-adj (BH): {p:.4f}",
+                        ))
+            else:
+                for c in COMORBIDITY_NAMES:
+                    edges.append(Edge(source=c, target="discontinuation",
+                                      label="ASSOC", color="#E74C3C", width=1))
+
+        # DRUG_CLASS_EFFECT edges (purple)
+        if show_drug_effect:
+            cox_ttd = load_csv("outputs/tables/cox_ttd_results.csv")
+            for dc in ["glp1", "sglt2"]:
+                hr_val = 1.0
+                if cox_ttd is not None and "exp(coef)" in cox_ttd.columns:
+                    dc_rows = cox_ttd[cox_ttd.get("covariate",
+                                                    cox_ttd.columns[0]).isin([dc, f"drug_class_{dc}"])]
+                    if not dc_rows.empty:
+                        hr_val = float(dc_rows["exp(coef)"].iloc[0])
+                edges.append(Edge(
+                    source=dc, target="discontinuation",
+                    label=f"HR={hr_val:.2f}",
+                    color="#8E44AD",
+                    width=2,
+                    title=f"Relationship: DRUG_CLASS_EFFECT\nHR vs metformin: {hr_val:.3f}",
+                ))
+
+        config = Config(
+            width=900,
+            height=600,
+            directed=True,
+            physics=True,
+            hierarchical=False,
+            nodeHighlightBehavior=True,
+            highlightColor="#FFD700",
+            collapsible=True,
+            node={"labelProperty": "label"},
+            link={"labelProperty": "label", "renderLabel": True},
+        )
+
+        st.info("**Tips:** Drag nodes to rearrange. Click a node to highlight its connections. Use checkboxes above to filter edge types.")
+        agraph(nodes=nodes, edges=edges, config=config)
+
+    except ImportError:
+        st.warning("streamlit-agraph not installed. Falling back to static graph.")
+        show_image("outputs/figures/knowledge_graph.png", "T2DM Knowledge Graph (NetworkX)")
+
+    # Keep static PNG available
+    st.divider()
+    with st.expander("Static graph (for reference / README screenshot)"):
+        show_image("outputs/figures/knowledge_graph.png", "T2DM Knowledge Graph (NetworkX)")
 
     st.divider()
     st.subheader("Cypher Export (Neo4j 5.15)")
@@ -447,6 +667,7 @@ with tab6:
         "What does the SHAP analysis show about comorbidity effects on discontinuation risk?",
         "Which drug class has the best evidence for CKD protection according to ADA 2024?",
         "How was propensity score matching performed in this study?",
+        "What was the pre-matching imbalance and how did PS matching improve it?",
     ]
     for ex in examples:
         st.markdown(f"- *{ex}*")
