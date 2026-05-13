@@ -47,3 +47,7 @@ synthea/
 # Allow specific trained models for cloud deployment
 !outputs/models/xgb_discontinuation.pkl
 !outputs/models/xgb_model.ubj
+
+# Build artifacts
+.claude/
+Rplots.pdf
