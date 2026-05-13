@@ -40,11 +40,17 @@ The study uses a **new-user active-comparator design** (Schneeweiss 2007, Lund 2
 - **Cox TTD:** Drug class significant predictor (HR=1.130 per class, p=1.5×10⁻⁷⁰); drug_class_num z≈8.4
 - **R Cox:** GLP-1 HR=1.50 vs metformin (p=2.6×10⁻¹⁵²), SGLT-2i HR=1.23 (p=7.8×10⁻⁴²)
 - **XGBoost:** 5-fold CV AUROC = **0.961 ± 0.001**, F1 = 0.909 ± 0.001
-- **Top SHAP predictors:** `followup_days`, `drug_metformin`, `drug_glp1`, `drug_class_num`, `age_at_index`
+- **Top permutation importance:** `followup_days` (AUC drop 0.446), `days_since_t2dm_dx` (0.006), `age_at_index` (0.006), `drug_class_num` (0.001)
 - **Knowledge graph:** 19 nodes, 27 edges — now interactive in Streamlit (streamlit-agraph)
 - **Kruskal-Wallis TTD:** H=1034.3, p≈0 — all pairwise Dunn comparisons p < 10⁻³³
 
-> **Note on AUC:** The 0.961 AUC is a synthetic data artifact: the lognormal TTD generating process with drug-class-specific parameters (μ, σ) creates inherently separable patterns not present in real-world data. Previous v1.0 also reported 0.961 AUC on 5K — the high AUC persists at 30K because the data structure, not scale, drives predictability. Real-world T2DM discontinuation models typically report AUC 0.70–0.85.
+> **AUC = 0.961 is driven by a Synthea data-generating artifact, not clinical predictive signal.**
+>
+> **Root cause — `followup_days` leakage:** The Synthea generator sets `obs_end = disc_date + Uniform(120, 300)`, where `disc_date = index_date + ttd_days`. This means `followup_days ≈ ttd_days + noise` (Pearson r = 0.972). Since the outcome is `y = (ttd_days ≤ 365)`, the model reconstructs the target from `followup_days` alone: a logistic regression on `followup_days` only achieves AUC = 0.948; XGBoost on `followup_days` only achieves AUC = 0.951. In real-world claims data, `obs_end` is set by study design (e.g., study end date), not derived from the patient's discontinuation date — so this leakage does not exist.
+>
+> **Drug class is not the primary driver:** An ablation removing only `followup_days` (keeping all other features including drug class) drops AUC from 0.961 to **0.574**. Drug class alone (without `followup_days`) achieves AUC = **0.578** — consistent with the lognormal TTD parameter differences across classes but far below 0.961. Removing both `followup_days` and drug class yields AUC = **0.503** (essentially random), confirming no other feature carries real predictive signal in this synthetic dataset.
+>
+> **Expected real-world performance:** Without the `followup_days` leakage, and with non-deterministic prescribing behavior in real claims data, expected AUC for 1-year T2DM treatment discontinuation prediction is **0.70–0.80**. See notebook 04 (`04_ml_xgboost_shap.ipynb`) for the full ablation study and permutation importance analysis.
 
 > All results are from synthetic patients only. No real PHI.
 
@@ -58,7 +64,7 @@ The study uses a **new-user active-comparator design** (Schneeweiss 2007, Lund 2
 | 01 | `01_cohort_characterization.ipynb` | Table 1, inline SQL, comorbidity heatmap, OMOP query |
 | 02 | `02_survival_analysis.ipynb` | KaplanMeierFitter (explicit params), CoxPHFitter (all covariates), forest plot |
 | 03 | `03_hypothesis_tests.ipynb` | Mann-Whitney U, Kruskal-Wallis, Dunn BH-FDR (all inline) |
-| 04 | `04_ml_xgboost_shap.ipynb` | XGB_PARAMS listed, feature engineering inline, SHAP TreeExplainer |
+| 04 | `04_ml_xgboost_shap.ipynb` | XGB_PARAMS listed, feature engineering inline, SHAP TreeExplainer, leakage audit, ablation studies, permutation importance |
 | 05 | `05_knowledge_graph.ipynb` | NetworkX nodes + edges inline, Cypher export |
 | 06 | `06_sensitivity_analyses.ipynb` | Grace period, matching ratio, caliper, E-values, subgroups |
 
