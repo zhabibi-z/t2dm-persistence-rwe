@@ -465,7 +465,14 @@ with tab4:
 
     if st.button("Predict Discontinuation Risk"):
         import pandas as _pd
-        import xgboost as xgb_
+        try:
+            import xgboost as xgb_
+        except ImportError as _e:
+            st.error(
+                "The prediction model needs the XGBoost runtime, which isn't available in this "
+                f"environment ({_e}). Every other tab works normally."
+            )
+            st.stop()
         model_path = Path("outputs/models/xgb_model.ubj")
         if model_path.exists():
             @st.cache_resource
