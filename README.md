@@ -1,12 +1,15 @@
 # Comparative Treatment Persistence Among Initiators of Metformin, GLP-1 Receptor Agonists, and SGLT-2 Inhibitors in Type 2 Diabetes
 
+<a href="https://t2dm-persistence-rwe.streamlit.app/"><img src="https://static.streamlit.io/badges/streamlit_badge_black_white.svg" alt="Open in Streamlit" height="48"></a>
+
+### ▶ Try the live app: [t2dm-persistence-rwe.streamlit.app](https://t2dm-persistence-rwe.streamlit.app/)
+
 [![CI](https://github.com/zhabibi-z/t2dm-persistence-rwe/actions/workflows/ci.yml/badge.svg)](https://github.com/zhabibi-z/t2dm-persistence-rwe/actions/workflows/ci.yml)
 
 **Investigator:** Zia Habibi  
 **Version:** v2.0 (30,000 patients)  
 **Status:** Active — synthetic data validation  
 **Data:** 30,000 synthetic patients, OMOP CDM v5.4 (no real PHI)  
-**Live Demo:** https://t2dm-persistence-rwe.streamlit.app/
 
 
 ![Project Architecture Infographic](docs/images/t2dm_cp1.png)
